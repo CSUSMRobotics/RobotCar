@@ -5,23 +5,24 @@
 const float MAX_JOYSTICK_VALUE = 32767.0;
 const float MIN_JOYSTICK_VALUE = -32767.0;
 
-
 using namespace std::chrono_literals;
 
 class ControllerNode : public rclcpp::Node
 {
-    public:
+public:
     ControllerNode() : Node("ControllerNode")
     {
         // Open joystick controller
-        if(SDL_Init(SDL_INIT_JOYSTICK) != 0){
-            fprintf(stderr, "%s",SDL_GetError());
+        if (SDL_Init(SDL_INIT_JOYSTICK) != 0)
+        {
+            fprintf(stderr, "%s", SDL_GetError());
             throw std::runtime_error("Failed to connect to controller");
         }
-        
+
         // Open the joystick device
         this->joystick = SDL_JoystickOpen(0);
-        if(!this->joystick){
+        if (!this->joystick)
+        {
             SDL_Quit();
             throw std::runtime_error("Failed to open joystick");
         }
@@ -29,26 +30,43 @@ class ControllerNode : public rclcpp::Node
         this->timer_ = this->create_wall_timer(500ms, std::bind(&ControllerNode::publishTwist, this));
         this->counter_ = 0;
     }
-    ~ControllerNode(){
+    ~ControllerNode()
+    {
         SDL_JoystickClose(this->joystick);
         SDL_Quit();
     }
-    
+
     void publishTwist()
     {
         float linear_speed;
         float angular_velocity;
         auto twist_msg = std::make_shared<geometry_msgs::msg::Twist>();
-        
-        while(rclcpp::ok()){
-            while(SDL_PollEvent(&this->event)){
-                if(this->event.type == SDL_JOYAXISMOTION){
-                    if(this->event.jaxis.axis == 0){
-                        linear_speed = SDL_JoystickGetAxis(this->joystick, 1) / MAX_JOYSTICK_VALUE;
-                    }else if(this->event.jaxis.axis == 3){
-                        angular_velocity = SDL_JoystickGetAxis(this->joystick, 2) / MAX_JOYSTICK_VALUE;
+
+        // while the node runs
+        while (rclcpp::ok())
+        {
+            // When an event is triggered on the joystick
+            while (SDL_PollEvent(&this->event))
+            {
+                if (this->event.type == SDL_JOYAXISMOTION)
+                {
+                    if (event.jaxis.axis == 1) // Left stick horizontal
+                    {
+                        angular_velocity = SDL_JoystickGetAxis(joystick, 0) / MAX_JOYSTICK_VALUE;
                     }
-                }else {
+                    else if (event.jaxis.axis == 2) // Left trigger -backwards
+                    {
+                        float inputData = -SDL_JoystickGetAxis(joystick, 2) / MAX_JOYSTICK_VALUE;
+                        linear_speed = inputData < 0 ? inputData : 0;
+                    }
+                    else if (event.jaxis.axis == 5) // Right trigger -forward
+                    {
+                        float inputData = SDL_JoystickGetAxis(joystick, 5) / MAX_JOYSTICK_VALUE;
+                        linear_speed = inputData > 0 ? inputData : 0;
+                    }
+                }
+                else
+                {
                     linear_speed = 0.0;
                     angular_velocity = 0.0;
                 }
@@ -59,12 +77,13 @@ class ControllerNode : public rclcpp::Node
             }
         }
     }
-    private:
+
+private:
     rclcpp::Publisher<geometry_msgs::msg::Twist>::SharedPtr publisher_;
     rclcpp::TimerBase::SharedPtr timer_;
     size_t counter_;
     SDL_Event event;
-    SDL_Joystick* joystick;
+    SDL_Joystick *joystick;
 };
 
 int main(int argc, char *argv[])

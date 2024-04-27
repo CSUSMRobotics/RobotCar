@@ -22,7 +22,7 @@ if(NOT PIGPIO_LIBRARY)
 endif()
 
 # Find and iclude SDL directory
-find_library(SDL_LIBRARY NAMES SDL PATHS /usr/include/SDL2 /usr/lib /usr/local/lib)
+find_library(SDL_LIBRARY NAMES SDL2 PATHS /usr/include/SDL2 /usr/include /usr/lib /usr/local/lib)
 if(NOT SDL_LIBRARY)
   message(FATAL_ERROR "SDL library not found")
 endif()
