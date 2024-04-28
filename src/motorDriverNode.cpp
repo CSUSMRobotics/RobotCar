@@ -8,6 +8,9 @@
 #define MOTOR_B_PIN1 12
 #define MOTOR_B_PIN2 18
 #define SLEEP_PIN 16
+#define LASER_PIN 26
+#define GREEN_LED_PIN 24
+#define RED_LED_PIN 23
 #define FORWARD 1
 #define REVERSE 2
 #define HIGH 1
@@ -86,13 +89,31 @@ private:
     void twistCallback(const geometry_msgs::msg::Twist::SharedPtr msg)
     {
         // Process received Twist message
-        RCLCPP_INFO(this->get_logger(), "linear.x=%f, angular.z=%f",
-                    msg->linear.x, msg->angular.z);
+        RCLCPP_INFO(this->get_logger(), "linear.x=%f, angular.z=%f, linear.z=%f",
+                    msg->linear.x, msg->angular.z, msg->linear.z);
 
         int direction = (msg->linear.x > 0) ? FORWARD : REVERSE;
         float leftDutyCycle = (msg->linear.x == 0) ? 0 : std::abs(msg->linear.x) * RANGE;
         float rightDutyCycle = (msg->linear.x == 0) ? 0 : std::abs(msg->linear.x) * RANGE;
+        if (direction == FORWARD)
+        {
+            gpio_write(this->pi, RED_LED_PIN, HIGH);
+            gpio_write(this->pi, GREEN_LED_PIN, LOW);
+        }
+        else if (direction == REVERSE)
+        {
+            gpio_write(this->pi, RED_LED_PIN, LOW);
+            gpio_write(this->pi, GREEN_LED_PIN, HIGH);
+        }
 
+        if (msg->linear.z)
+        {
+            gpio_write(this->pi, LASER_PIN, HIGH);
+        }
+        else
+        {
+            gpio_write(this->pi, LASER_PIN, LOW);
+        }
         if (msg->angular.z > 0.1)
         {
             leftDutyCycle = std::abs(msg->angular.z) * 0.1 * leftDutyCycle;

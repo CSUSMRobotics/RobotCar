@@ -65,14 +65,24 @@ public:
                         linear_speed = inputData > 0 ? inputData : 0;
                     }
                 }
+                else if (event.type == SDL_JOYBUTTONDOWN)
+                {
+                    bool button = SDL_JoystickGetButton(joystick, 5);
+
+                    if (button)
+                    {
+                        twist_msg->linear.z = 1; // Borrowing unused variable to send button data
+                    }
+                }
                 else
                 {
                     linear_speed = 0.0;
                     angular_velocity = 0.0;
+                    twist_msg->linear.z = 0;
                 }
                 twist_msg->linear.x = -linear_speed;
                 twist_msg->angular.z = angular_velocity;
-                RCLCPP_INFO(get_logger(), "linear.=%f, angular.%f", twist_msg->linear.x, twist_msg->angular.z);
+                RCLCPP_INFO(get_logger(), "linear.=%f, angular.=%f r1.=%f", twist_msg->linear.x, twist_msg->angular.z, twist_msg->linear.z);
                 this->publisher_->publish(*twist_msg);
             }
         }
